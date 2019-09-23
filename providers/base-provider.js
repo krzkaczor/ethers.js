@@ -310,6 +310,17 @@ function checkTransactionReceipt(transactionReceipt) {
     }
     return result;
 }
+function checkAddresses(addresses) {
+    if (Array.isArray(addresses)) {
+        addresses.forEach(function (topic) {
+            checkAddresses(topic);
+        });
+    }
+    else if (addresses != null) {
+        address_1.getAddress(addresses);
+    }
+    return addresses;
+}
 function checkTopics(topics) {
     if (Array.isArray(topics)) {
         topics.forEach(function (topic) {
@@ -324,12 +335,12 @@ function checkTopics(topics) {
 var formatFilter = {
     fromBlock: allowNull(checkBlockTag, undefined),
     toBlock: allowNull(checkBlockTag, undefined),
-    address: allowNull(address_1.getAddress, undefined),
+    address: allowNull(checkAddresses, undefined),
     topics: allowNull(checkTopics, undefined),
 };
 var formatFilterByBlock = {
     blockHash: allowNull(checkHash, undefined),
-    address: allowNull(address_1.getAddress, undefined),
+    address: allowNull(checkAddresses, undefined),
     topics: allowNull(checkTopics, undefined),
 };
 function checkFilter(filter) {
@@ -965,14 +976,23 @@ var BaseProvider = /** @class */ (function (_super) {
     BaseProvider.prototype.getLogs = function (filter) {
         var _this = this;
         return this.ready.then(function () {
-            return properties_1.resolveProperties(filter).then(function (filter) {
-                return _this._resolveNames(filter, ['address']).then(function (filter) {
-                    var params = { filter: checkFilter(filter) };
-                    return _this.perform('getLogs', params).then(function (result) {
-                        return arrayOf(checkLog)(result);
-                    });
-                });
-            });
+            return properties_1.resolveProperties(filter);
+        }).then(function (filter) {
+            var resolved = Promise.resolve(filter);
+            if (filter.address) {
+                if (Array.isArray(filter.address)) {
+                    resolved = _this._resolveArrayName(filter, 'address');
+                }
+                else {
+                    resolved = _this._resolveNames(filter, ['address']);
+                }
+            }
+            return resolved;
+        }).then(function (filter) {
+            var params = { filter: checkFilter(filter) };
+            return _this.perform('getLogs', params);
+        }).then(function (result) {
+            return arrayOf(checkLog)(result);
         });
     };
     BaseProvider.prototype.getEtherPrice = function () {
@@ -1006,6 +1026,17 @@ var BaseProvider = /** @class */ (function (_super) {
             }));
         }, this);
         return Promise.all(promises).then(function () { return result; });
+    };
+    BaseProvider.prototype._resolveArrayName = function (object, arrayKey) {
+        var result = properties_1.shallowCopy(object);
+        var rawAddresses = result[arrayKey];
+        rawAddresses.map(function (rawAddress) {
+            return this._getAddress(rawAddress);
+        }, this);
+        return Promise.all(rawAddresses).then(function (resolvedAddresses) {
+            result[arrayKey] = resolvedAddresses;
+            return result;
+        });
     };
     BaseProvider.prototype._getResolver = function (name) {
         var _this = this;

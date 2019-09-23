@@ -21,12 +21,12 @@ export declare type BlockTag = string | number;
 export declare type Filter = {
     fromBlock?: BlockTag;
     toBlock?: BlockTag;
-    address?: string;
+    address?: string | string[];
     topics?: Array<string | Array<string>>;
 };
 export declare type FilterByBlock = {
     blockHash?: string;
-    address?: string;
+    address?: string | string[];
     topics?: Array<string | Array<string>>;
 };
 export interface Log {

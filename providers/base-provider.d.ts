@@ -55,6 +55,7 @@ export declare class BaseProvider extends Provider {
     getEtherPrice(): Promise<number>;
     _getAddress(addressOrName: string): Promise<string>;
     private _resolveNames;
+    private _resolveArrayName;
     private _getResolver;
     resolveName(name: string | Promise<string>): Promise<string>;
     lookupAddress(address: string | Promise<string>): Promise<string>;
